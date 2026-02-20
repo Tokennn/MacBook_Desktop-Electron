@@ -67,6 +67,15 @@ type LoginSession = LoginFormState
 
 type LoginFieldErrors = Partial<Record<keyof LoginFormState, string>>
 
+type LoginView = 'generator' | 'vault'
+
+type PasswordEntry = {
+  id: string
+  domain: string
+  password: string
+  revealed: boolean
+}
+
 type AvatarTheme = {
   top: string
   bottom: string
@@ -359,6 +368,22 @@ function createGeneratedPassword(session: LoginSession) {
   return chars.join('')
 }
 
+function createPasswordEntry(session: LoginSession, domain: string): PasswordEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    domain,
+    password: createGeneratedPassword({
+      ...session,
+      website: domain,
+    }),
+    revealed: false,
+  }
+}
+
+function maskPassword(value: string) {
+  return '•'.repeat(value.length)
+}
+
 function createDefaultAvatarSrc(session: LoginSession) {
   const seed = seedFromValue(`${session.username}|${session.email}|${session.website}`)
   const theme = DEFAULT_AVATAR_THEMES[seed % DEFAULT_AVATAR_THEMES.length]
@@ -525,7 +550,12 @@ function App() {
   const [loginForm, setLoginForm] = useState<LoginFormState>(EMPTY_LOGIN_FORM)
   const [loginFieldErrors, setLoginFieldErrors] = useState<LoginFieldErrors>({})
   const [loginSession, setLoginSession] = useState<LoginSession | null>(null)
+  const [loginView, setLoginView] = useState<LoginView>('generator')
   const [generatedPassword, setGeneratedPassword] = useState('')
+  const [generatedPasswordEntries, setGeneratedPasswordEntries] = useState<PasswordEntry[]>([])
+  const [generatorDomainInput, setGeneratorDomainInput] = useState('')
+  const [generatorDomainError, setGeneratorDomainError] = useState('')
+  const [vaultSearch, setVaultSearch] = useState('')
   const [generatorTypingText, setGeneratorTypingText] = useState('')
   const [toast, setToast] = useState('')
 
@@ -659,7 +689,7 @@ function App() {
     return () => {
       window.removeEventListener('resize', syncLoginBounds)
     }
-  }, [loginWindowOpen])
+  }, [loginWindowOpen, loginView])
 
   useEffect(() => {
     const keepDesktopIconsInBounds = () => {
@@ -870,8 +900,6 @@ function App() {
       setActiveDockAppId(appId)
     }
 
-    setToast(`${app.name}: ${app.description}`)
-
     if (appId === 'vault-app' || appId === 'mdp-shortcut') {
       loginInitializedRef.current = false
       setLoginDragState(null)
@@ -974,10 +1002,16 @@ function App() {
       return
     }
 
+    const firstEntry = createPasswordEntry(validation.normalized, validation.normalized.website)
+
     setLoginForm(validation.normalized)
     setLoginSession(validation.normalized)
-    setGeneratedPassword(createGeneratedPassword(validation.normalized))
-    setToast(`Connecté: ${validation.normalized.username}`)
+    setLoginView('generator')
+    setGeneratedPassword(firstEntry.password)
+    setGeneratedPasswordEntries([firstEntry])
+    setGeneratorDomainInput(validation.normalized.website)
+    setGeneratorDomainError('')
+    setVaultSearch('')
   }
 
   const handleGeneratePassword = () => {
@@ -985,20 +1019,78 @@ function App() {
       return
     }
 
-    setGeneratedPassword(createGeneratedPassword(loginSession))
-    setToast(`Mot de passe régénéré pour ${loginSession.website}`)
+    const nextEntry = createPasswordEntry(loginSession, loginSession.website)
+    setGeneratedPassword(nextEntry.password)
+    setGeneratedPasswordEntries((currentEntries) => [nextEntry, ...currentEntries])
   }
 
-  const handleCopyGeneratedPassword = async () => {
-    if (!generatedPassword) {
+  const handleGeneratorDomainInputChange = (event: ReactChangeEvent<HTMLInputElement>) => {
+    setGeneratorDomainInput(event.target.value)
+
+    if (generatorDomainError) {
+      setGeneratorDomainError('')
+    }
+  }
+
+  const handleGenerateDomainPassword = () => {
+    if (!loginSession) {
       return
     }
 
-    const copied = await copyTextToClipboard(generatedPassword)
+    const domain = normalizeWebsite(generatorDomainInput)
+
+    if (!domain) {
+      setGeneratorDomainError('Domaine invalide (ex: github.com).')
+      return
+    }
+
+    const nextEntry = createPasswordEntry(loginSession, domain)
+    setGeneratedPassword(nextEntry.password)
+    setGeneratedPasswordEntries((currentEntries) => [nextEntry, ...currentEntries])
+    setGeneratorDomainInput(domain)
+    setGeneratorDomainError('')
+  }
+
+  const copyPasswordAndShowToast = async (password: string) => {
+    if (!password) {
+      return
+    }
+
+    const copied = await copyTextToClipboard(password)
     setToast(
       copied
         ? 'Mot de passe copié dans le presse-papiers.'
         : 'Impossible de copier le mot de passe.',
+    )
+  }
+
+  const handleCopyGeneratedPassword = async () => {
+    await copyPasswordAndShowToast(generatedPassword)
+  }
+
+  const handleCopyPasswordFromVault = async (password: string) => {
+    await copyPasswordAndShowToast(password)
+  }
+
+  const openVaultView = () => {
+    setVaultSearch('')
+    setLoginView('vault')
+  }
+
+  const openGeneratorView = () => {
+    setLoginView('generator')
+  }
+
+  const togglePasswordEntryReveal = (entryId: string) => {
+    setGeneratedPasswordEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              revealed: !entry.revealed,
+            }
+          : entry,
+      ),
     )
   }
 
@@ -1010,6 +1102,11 @@ function App() {
     setLoginForm(loginSession)
     setLoginFieldErrors({})
     setGeneratedPassword('')
+    setGeneratedPasswordEntries([])
+    setGeneratorDomainInput('')
+    setGeneratorDomainError('')
+    setVaultSearch('')
+    setLoginView('generator')
     setLoginSession(null)
   }
 
@@ -1143,9 +1240,11 @@ function App() {
 
   const loginSubmitDisabled =
     !loginForm.username.trim() || !loginForm.email.trim() || !loginForm.website.trim()
+  const generatorDomainDisabled = !generatorDomainInput.trim()
   const loginErrorText =
     loginFieldErrors.username ?? loginFieldErrors.email ?? loginFieldErrors.website ?? ''
-  const loginTitle = loginSession ? 'Générateur' : 'Login'
+  const isGeneratorView = Boolean(loginSession) && loginView === 'generator'
+  const isVaultView = Boolean(loginSession) && loginView === 'vault'
   const profileAvatarSrc = useMemo(() => {
     if (!loginSession) {
       return contactsIcon
@@ -1153,6 +1252,32 @@ function App() {
 
     return createDefaultAvatarSrc(loginSession)
   }, [loginSession])
+  const filteredPasswordEntries = useMemo(() => {
+    const normalizedSearch = vaultSearch.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return generatedPasswordEntries
+    }
+
+    return generatedPasswordEntries.filter((entry) => {
+      const matchesDomain = entry.domain.toLowerCase().includes(normalizedSearch)
+      const matchesPassword = entry.password.toLowerCase().includes(normalizedSearch)
+      return matchesDomain || matchesPassword
+    })
+  }, [generatedPasswordEntries, vaultSearch])
+
+  const domainRows = useMemo(() => {
+    const map = new Map<string, number>()
+
+    for (const entry of filteredPasswordEntries) {
+      map.set(entry.domain, (map.get(entry.domain) ?? 0) + 1)
+    }
+
+    return Array.from(map.entries()).map(([domain, count]) => ({
+      domain,
+      count,
+    }))
+  }, [filteredPasswordEntries])
 
   return (
     <div className='mac-desktop'>
@@ -1333,7 +1458,7 @@ function App() {
 
         {loginWindowOpen && (
           <section
-            className={`login-space ${loginDragState ? 'is-dragging' : ''}`}
+            className={`login-space ${isVaultView ? 'login-space--vault' : ''} ${loginDragState ? 'is-dragging' : ''}`}
             ref={loginWindowRef}
             aria-label='MDP login window'
             onPointerDown={handleLoginDragStart}
@@ -1343,7 +1468,7 @@ function App() {
             }}
           >
             <GlassSurface
-              className='login-window'
+              className={`login-window ${isVaultView ? 'login-window--vault' : ''}`}
               borderRadius={42}
               borderWidth={0.11}
               brightness={54}
@@ -1378,119 +1503,124 @@ function App() {
                 </div>
               </header>
 
-              <div className='login-window__content'>
-                <div className={`login-window__header-row ${loginSession ? 'is-generator' : ''}`}>
-                  <GlassSurface
-                    className='login-window__title-shell'
-                    borderRadius={999}
-                    borderWidth={0.13}
-                    brightness={58}
-                    opacity={0.95}
-                    blur={10}
-                    displace={0.26}
-                    backgroundOpacity={0.12}
-                    saturation={1.18}
-                    distortionScale={-150}
-                    greenOffset={10}
-                    blueOffset={20}
-                  >
-                    <h1 className='login-window__title'>{loginTitle}</h1>
-                  </GlassSurface>
+              <div className={`login-window__content ${isVaultView ? 'is-vault' : ''}`}>
+                {!loginSession ? (
+                  <>
+                    <div className='login-window__header-row'>
+                      <GlassSurface
+                        className='login-window__title-shell'
+                        borderRadius={999}
+                        borderWidth={0.13}
+                        brightness={58}
+                        opacity={0.95}
+                        blur={10}
+                        displace={0.26}
+                        backgroundOpacity={0.12}
+                        saturation={1.18}
+                        distortionScale={-150}
+                        greenOffset={10}
+                        blueOffset={20}
+                      >
+                        <h1 className='login-window__title'>Login</h1>
+                      </GlassSurface>
+                    </div>
 
-                  {loginSession && (
-                    <div className='generator-avatar' aria-label={`Profil ${loginSession.username}`}>
+                    <form className='login-form' onSubmit={handleLoginSubmit} noValidate>
+                      <GlassSurface
+                        className={`login-input-shell ${loginFieldErrors.username ? 'has-error' : ''}`}
+                        {...loginInputGlassProps}
+                      >
+                        <label className='sr-only' htmlFor='login-username'>
+                          Username
+                        </label>
+                        <input
+                          id='login-username'
+                          className='login-input'
+                          placeholder='Username'
+                          type='text'
+                          autoComplete='username'
+                          value={loginForm.username}
+                          onChange={(event) => handleLoginInputChange('username', event)}
+                          aria-invalid={Boolean(loginFieldErrors.username)}
+                        />
+                      </GlassSurface>
+
+                      <GlassSurface
+                        className={`login-input-shell ${loginFieldErrors.email ? 'has-error' : ''}`}
+                        {...loginInputGlassProps}
+                      >
+                        <label className='sr-only' htmlFor='login-email'>
+                          E-mail
+                        </label>
+                        <input
+                          id='login-email'
+                          className='login-input'
+                          placeholder='E-mail'
+                          type='email'
+                          autoComplete='email'
+                          value={loginForm.email}
+                          onChange={(event) => handleLoginInputChange('email', event)}
+                          aria-invalid={Boolean(loginFieldErrors.email)}
+                        />
+                      </GlassSurface>
+
+                      <GlassSurface
+                        className={`login-input-shell ${loginFieldErrors.website ? 'has-error' : ''}`}
+                        {...loginInputGlassProps}
+                      >
+                        <label className='sr-only' htmlFor='login-website'>
+                          Website
+                        </label>
+                        <input
+                          id='login-website'
+                          className='login-input'
+                          placeholder='Website'
+                          type='text'
+                          autoComplete='url'
+                          value={loginForm.website}
+                          onChange={(event) => handleLoginInputChange('website', event)}
+                          aria-invalid={Boolean(loginFieldErrors.website)}
+                        />
+                      </GlassSurface>
+
+                      {loginErrorText && (
+                        <p className='login-form__error' role='alert'>
+                          {loginErrorText}
+                        </p>
+                      )}
+
+                      <GlassSurface
+                        className='login-submit-shell login-submit-shell--login'
+                        style={{ width: '170px', minHeight: '44px' }}
+                        {...loginInputGlassProps}
+                      >
+                        <button
+                          type='submit'
+                          className='login-submit-button login-submit-button--login'
+                          disabled={loginSubmitDisabled}
+                          style={{ fontSize: '18px', paddingInline: '12px' }}
+                        >
+                          Se connecter
+                        </button>
+                      </GlassSurface>
+                    </form>
+                  </>
+                ) : isGeneratorView ? (
+                  <section className='generator-panel' aria-label='Password generator panel'>
+                    <button
+                      type='button'
+                      className='generator-avatar generator-avatar--button'
+                      aria-label={`Ouvrir la fenêtre du profil ${loginSession.username}`}
+                      onClick={openVaultView}
+                    >
                       <img
                         className='generator-avatar__image'
                         src={profileAvatarSrc}
                         alt={`Photo de profil de ${loginSession.username}`}
                         draggable={false}
                       />
-                    </div>
-                  )}
-                </div>
+                    </button>
 
-                {!loginSession ? (
-                  <form className='login-form' onSubmit={handleLoginSubmit} noValidate>
-                    <GlassSurface
-                      className={`login-input-shell ${loginFieldErrors.username ? 'has-error' : ''}`}
-                      {...loginInputGlassProps}
-                    >
-                      <label className='sr-only' htmlFor='login-username'>
-                        Username
-                      </label>
-                      <input
-                        id='login-username'
-                        className='login-input'
-                        placeholder='Username'
-                        type='text'
-                        autoComplete='username'
-                        value={loginForm.username}
-                        onChange={(event) => handleLoginInputChange('username', event)}
-                        aria-invalid={Boolean(loginFieldErrors.username)}
-                      />
-                    </GlassSurface>
-
-                    <GlassSurface
-                      className={`login-input-shell ${loginFieldErrors.email ? 'has-error' : ''}`}
-                      {...loginInputGlassProps}
-                    >
-                      <label className='sr-only' htmlFor='login-email'>
-                        E-mail
-                      </label>
-                      <input
-                        id='login-email'
-                        className='login-input'
-                        placeholder='E-mail'
-                        type='email'
-                        autoComplete='email'
-                        value={loginForm.email}
-                        onChange={(event) => handleLoginInputChange('email', event)}
-                        aria-invalid={Boolean(loginFieldErrors.email)}
-                      />
-                    </GlassSurface>
-
-                    <GlassSurface
-                      className={`login-input-shell ${loginFieldErrors.website ? 'has-error' : ''}`}
-                      {...loginInputGlassProps}
-                    >
-                      <label className='sr-only' htmlFor='login-website'>
-                        Website
-                      </label>
-                      <input
-                        id='login-website'
-                        className='login-input'
-                        placeholder='Website'
-                        type='text'
-                        autoComplete='url'
-                        value={loginForm.website}
-                        onChange={(event) => handleLoginInputChange('website', event)}
-                        aria-invalid={Boolean(loginFieldErrors.website)}
-                      />
-                    </GlassSurface>
-
-                    {loginErrorText && (
-                      <p className='login-form__error' role='alert'>
-                        {loginErrorText}
-                      </p>
-                    )}
-
-                    <GlassSurface
-                      className='login-submit-shell login-submit-shell--login'
-                      style={{ width: '170px', minHeight: '44px' }}
-                      {...loginInputGlassProps}
-                    >
-                      <button
-                        type='submit'
-                        className='login-submit-button login-submit-button--login'
-                        disabled={loginSubmitDisabled}
-                        style={{ fontSize: '18px', paddingInline: '12px' }}
-                      >
-                        Se connecter
-                      </button>
-                    </GlassSurface>
-                  </form>
-                ) : (
-                  <section className='generator-panel' aria-label='Password generator panel'>
                     <p className='generator-typing' aria-live='polite'>
                       {generatorTypingText}
                       <span className='generator-typing__caret' aria-hidden='true' />
@@ -1525,19 +1655,219 @@ function App() {
                       </button>
                     </GlassSurface>
 
-                    <GlassSurface className='login-submit-shell generator-action-shell' {...loginInputGlassProps}>
-                      <button
-                        type='button'
-                        className='login-submit-button generator-action-button'
-                        onClick={handleGeneratePassword}
-                      >
-                        Générer ici
-                      </button>
+                    <GlassSurface className='login-input-shell generator-domain-shell' {...loginInputGlassProps}>
+                      <label className='sr-only' htmlFor='generator-domain'>
+                        Domaine
+                      </label>
+                      <input
+                        id='generator-domain'
+                        className='login-input generator-domain-input'
+                        placeholder='Nouveau domaine (ex: github.com)'
+                        type='text'
+                        value={generatorDomainInput}
+                        onChange={handleGeneratorDomainInputChange}
+                        aria-invalid={Boolean(generatorDomainError)}
+                      />
                     </GlassSurface>
+
+                    {generatorDomainError && (
+                      <p className='login-form__error generator-domain-error' role='alert'>
+                        {generatorDomainError}
+                      </p>
+                    )}
+
+                    <div className='generator-actions'>
+                      <GlassSurface className='login-submit-shell generator-action-shell' {...loginInputGlassProps}>
+                        <button
+                          type='button'
+                          className='login-submit-button generator-action-button'
+                          onClick={handleGeneratePassword}
+                        >
+                          Générer ici
+                        </button>
+                      </GlassSurface>
+
+                      <GlassSurface
+                        className='login-submit-shell generator-action-shell generator-action-shell--secondary'
+                        {...loginInputGlassProps}
+                      >
+                        <button
+                          type='button'
+                          className='login-submit-button generator-action-button generator-action-button--secondary'
+                          onClick={handleGenerateDomainPassword}
+                          disabled={generatorDomainDisabled}
+                        >
+                          Autre domaine
+                        </button>
+                      </GlassSurface>
+                    </div>
+
+                    <button
+                      type='button'
+                      className='generator-open-vault-button'
+                      onClick={openVaultView}
+                    >
+                      Ouvrir la fenêtre des mots de passe
+                    </button>
 
                     <button type='button' className='generator-switch-button' onClick={switchToLoginForm}>
                       Changer de profil
                     </button>
+                  </section>
+                ) : (
+                  <section className='vault-panel' aria-label='Password vault panel'>
+                    <div className='vault-toolbar'>
+                      <GlassSurface
+                        className='vault-search-shell'
+                        borderRadius={999}
+                        borderWidth={0.11}
+                        brightness={54}
+                        opacity={0.93}
+                        blur={11}
+                        displace={0.24}
+                        backgroundOpacity={0.08}
+                        saturation={1.3}
+                        distortionScale={-200}
+                        greenOffset={12}
+                        blueOffset={24}
+                      >
+                        <label className='sr-only' htmlFor='vault-search'>
+                          Recherche
+                        </label>
+                        <input
+                          id='vault-search'
+                          className='login-input vault-search-input'
+                          placeholder='Recherche'
+                          type='text'
+                          value={vaultSearch}
+                          onChange={(event) => setVaultSearch(event.target.value)}
+                        />
+                      </GlassSurface>
+
+                      <button
+                        type='button'
+                        className='generator-avatar generator-avatar--button vault-avatar-button'
+                        aria-label='Retourner à la vue générateur'
+                        onClick={openGeneratorView}
+                      >
+                        <img
+                          className='generator-avatar__image'
+                          src={profileAvatarSrc}
+                          alt={`Photo de profil de ${loginSession.username}`}
+                          draggable={false}
+                        />
+                      </button>
+                    </div>
+
+                    <div className='vault-columns'>
+                      <GlassSurface
+                        className='vault-card vault-card--passwords'
+                        borderRadius={58}
+                        borderWidth={0.12}
+                        brightness={52}
+                        opacity={0.9}
+                        blur={13}
+                        displace={0.4}
+                        backgroundOpacity={0.1}
+                        saturation={1.26}
+                        distortionScale={-220}
+                        redOffset={0}
+                        greenOffset={12}
+                        blueOffset={25}
+                      >
+                        <div className='vault-card__body'>
+                          <GlassSurface className='vault-card-title-shell' {...loginInputGlassProps}>
+                            <p className='vault-card-title'>Liste de vos mots de passe</p>
+                          </GlassSurface>
+
+                          {filteredPasswordEntries.length > 0 ? (
+                            <ul className='vault-password-list'>
+                              {filteredPasswordEntries.map((entry) => (
+                                <li key={entry.id} className='vault-password-item'>
+                                  <GlassSurface className='vault-row-shell' {...loginInputGlassProps}>
+                                    <button
+                                      type='button'
+                                      className='vault-row-copy-button'
+                                      onClick={() => {
+                                        void handleCopyPasswordFromVault(entry.password)
+                                      }}
+                                      aria-label={`Copier le mot de passe pour ${entry.domain}`}
+                                    >
+                                      <span className='vault-row-text vault-row-text--mono'>
+                                        {entry.revealed ? entry.password : maskPassword(entry.password)}
+                                      </span>
+                                    </button>
+                                  </GlassSurface>
+
+                                  <button
+                                    type='button'
+                                    className='vault-visibility-button'
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      togglePasswordEntryReveal(entry.id)
+                                    }}
+                                    aria-label={
+                                      entry.revealed
+                                        ? `Masquer le mot de passe de ${entry.domain}`
+                                        : `Afficher le mot de passe de ${entry.domain}`
+                                    }
+                                  >
+                                    <svg viewBox='0 0 24 24' aria-hidden='true'>
+                                      <path d='M2.7 12s3.5-5.8 9.3-5.8 9.3 5.8 9.3 5.8-3.5 5.8-9.3 5.8S2.7 12 2.7 12Z' />
+                                      <circle cx='12' cy='12' r='2.7' />
+                                      {!entry.revealed && <path d='M4 20 20 4' />}
+                                    </svg>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className='vault-empty'>Aucun mot de passe pour cette recherche.</p>
+                          )}
+                        </div>
+                      </GlassSurface>
+
+                      <GlassSurface
+                        className='vault-card vault-card--domains'
+                        borderRadius={58}
+                        borderWidth={0.12}
+                        brightness={52}
+                        opacity={0.9}
+                        blur={13}
+                        displace={0.4}
+                        backgroundOpacity={0.1}
+                        saturation={1.26}
+                        distortionScale={-220}
+                        redOffset={0}
+                        greenOffset={12}
+                        blueOffset={25}
+                      >
+                        <div className='vault-card__body'>
+                          <GlassSurface className='vault-card-title-shell' {...loginInputGlassProps}>
+                            <p className='vault-card-title'>Domaines</p>
+                          </GlassSurface>
+
+                          {domainRows.length > 0 ? (
+                            <ul className='vault-domain-list'>
+                              {domainRows.map((domainRow) => (
+                                <li key={domainRow.domain} className='vault-domain-item'>
+                                  <GlassSurface className='vault-row-shell vault-row-shell--domain' {...loginInputGlassProps}>
+                                    <span className='vault-row-text'>
+                                      {domainRow.count > 1
+                                        ? `${domainRow.domain} (${domainRow.count})`
+                                        : domainRow.domain}
+                                    </span>
+                                  </GlassSurface>
+                                  <span className='vault-domain-dot' aria-hidden='true' />
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className='vault-empty'>Aucun domaine pour cette recherche.</p>
+                          )}
+                        </div>
+                      </GlassSurface>
+                    </div>
                   </section>
                 )}
               </div>
