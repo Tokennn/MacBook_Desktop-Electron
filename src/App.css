@@ -209,16 +209,19 @@
     0 0 0 0.5px rgba(255, 255, 255, 0.1);
 }
 
-.window-dot--red {
-  background: #ff5f57;
+.window-dot.window-dot--red {
+  background-color: #ff5f57;
+  background: radial-gradient(circle at 30% 28%, #ffb9b4 0%, #ff5f57 40%, #e04640 100%);
 }
 
-.window-dot--yellow {
-  background: #febc2e;
+.window-dot.window-dot--yellow {
+  background-color: #febc2e;
+  background: radial-gradient(circle at 30% 28%, #ffe2a8 0%, #febc2e 42%, #e1980b 100%);
 }
 
-.window-dot--green {
-  background: #28c840;
+.window-dot.window-dot--green {
+  background-color: #28c840;
+  background: radial-gradient(circle at 30% 28%, #9ff3af 0%, #28c840 42%, #1f9e33 100%);
 }
 
 .window-dot:hover {
