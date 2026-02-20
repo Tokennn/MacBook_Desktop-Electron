@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
@@ -8,16 +9,17 @@ import {
 import './App.css'
 import appStoreIcon from './assets/macos-icons/appstore.png'
 import calculatorIcon from './assets/macos-icons/calculator.png'
-import contactsIcon from './assets/macos-icons/contacts.png'
+import cardFindMyIcon from './assets/card-icons/findmy.png'
+import cardHomeIcon from './assets/card-icons/home.png'
+import cardLockIcon from './assets/card-icons/lock.png'
+import cardTranslateIcon from './assets/card-icons/translate.png'
+import cardWalletIcon from './assets/card-icons/wallet.png'
 import facetimeIcon from './assets/macos-icons/facetime.png'
-import findMyIcon from './assets/macos-icons/findmy.png'
-import homeIcon from './assets/macos-icons/home.png'
 import mailIcon from './assets/macos-icons/mail.png'
 import messagesIcon from './assets/macos-icons/messages.png'
 import passwordsIcon from './assets/macos-icons/passwords.png'
 import safariIcon from './assets/macos-icons/safari.png'
 import settingsIcon from './assets/macos-icons/settings.png'
-import walletIcon from './assets/macos-icons/wallet.png'
 
 type MiniApp = {
   id: string
@@ -79,43 +81,37 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
 const FINDER_APPS: MiniApp[] = [
   {
     id: 'wallet-app',
-    name: 'Wallet',
-    iconSrc: walletIcon,
-    description: 'Open your payment shortcuts and quick cards.',
+    name: 'Cards',
+    iconSrc: cardWalletIcon,
+    description: 'Quick access to cards and payment shortcuts.',
   },
   {
     id: 'home-app',
     name: 'Home',
-    iconSrc: homeIcon,
-    description: 'Launch your home dashboard and automations.',
+    iconSrc: cardHomeIcon,
+    description: 'Open connected-home controls and scenes.',
   },
   {
     id: 'locate-app',
     name: 'Locate',
-    iconSrc: findMyIcon,
+    iconSrc: cardFindMyIcon,
     description: 'Track devices and secure workspace locations.',
   },
   {
-    id: 'browser-app',
-    name: 'Browser',
-    iconSrc: safariIcon,
-    description: 'Open the browser workflow linked to your project.',
+    id: 'translate-app',
+    name: 'Translate',
+    iconSrc: cardTranslateIcon,
+    description: 'Open translation tools for quick text checks.',
   },
   {
     id: 'vault-app',
-    name: 'MDP',
-    iconSrc: passwordsIcon,
-    description: 'Generate and manage strong passwords instantly.',
+    name: 'Lock',
+    iconSrc: cardLockIcon,
+    description: 'Open password management actions.',
   },
 ]
 
 const DESKTOP_SHORTCUTS: MiniApp[] = [
-  {
-    id: 'contact-shortcut',
-    name: 'Contact',
-    iconSrc: contactsIcon,
-    description: 'Open the contact card and profile actions.',
-  },
   {
     id: 'mdp-shortcut',
     name: 'MDP',
@@ -172,10 +168,14 @@ const DOCK_APPS: MiniApp[] = [
 const ALL_APPS = [...FINDER_APPS, ...DESKTOP_SHORTCUTS, ...DOCK_APPS]
 const APP_MAP = new Map(ALL_APPS.map((app) => [app.id, app]))
 
-const CLOCK_WEEKDAY = new Intl.DateTimeFormat('en-US', { weekday: 'short' })
-const CLOCK_MONTH = new Intl.DateTimeFormat('en-US', { month: 'short' })
-const CLOCK_DAY = new Intl.DateTimeFormat('en-US', { day: 'numeric' })
-const CLOCK_TIME = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
+const CLOCK_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
 const INITIAL_FINDER_POSITION: FinderPosition = { x: 72, y: 70 }
 const DESKTOP_ICON_WIDTH = 86
 const DESKTOP_ICON_HEIGHT = 96
@@ -184,8 +184,7 @@ const FINDER_DRAG_APP_TYPE = 'application/x-mini-desktop-app'
 const FINDER_DRAG_SOURCE_TYPE = 'application/x-mini-desktop-source'
 
 const INITIAL_DESKTOP_ICONS: Array<{ id: string; appId: string; y: number }> = [
-  { id: 'desktop-contact', appId: 'contact-shortcut', y: 34 },
-  { id: 'desktop-mdp', appId: 'mdp-shortcut', y: 146 },
+  { id: 'desktop-mdp', appId: 'mdp-shortcut', y: 34 },
 ]
 
 function clamp(value: number, min: number, max: number) {
@@ -206,15 +205,6 @@ function clampDesktopPosition(x: number, y: number, sceneWidth: number, sceneHei
     x: clamp(x, DESKTOP_ICON_SAFE_GAP, maxX),
     y: clamp(y, DESKTOP_ICON_SAFE_GAP, maxY),
   }
-}
-
-function formatClock(date: Date) {
-  const weekday = CLOCK_WEEKDAY.format(date)
-  const month = CLOCK_MONTH.format(date)
-  const day = CLOCK_DAY.format(date)
-  const time = CLOCK_TIME.format(date)
-
-  return `${weekday} ${month} ${day} ${time}`
 }
 
 function renderSidebarGlyph(glyph: SidebarGlyph) {
@@ -269,8 +259,10 @@ function renderSidebarGlyph(glyph: SidebarGlyph) {
 function App() {
   const desktopSceneRef = useRef<HTMLElement | null>(null)
   const finderWindowRef = useRef<HTMLElement | null>(null)
+  const finderInitializedRef = useRef(false)
   const desktopIconIdRef = useRef(0)
-  const [clockLabel, setClockLabel] = useState(() => formatClock(new Date()))
+
+  const [clockLabel, setClockLabel] = useState(() => CLOCK_FORMATTER.format(new Date()))
   const [finderOpen, setFinderOpen] = useState(true)
   const [finderPosition, setFinderPosition] = useState(INITIAL_FINDER_POSITION)
   const [finderDragState, setFinderDragState] = useState<FinderDragState | null>(null)
@@ -290,11 +282,12 @@ function App() {
   const [activeFinderAppId, setActiveFinderAppId] = useState<string | null>(null)
   const [activeDockAppId, setActiveDockAppId] = useState<string | null>(null)
   const [activeDesktopIconId, setActiveDesktopIconId] = useState<string | null>(null)
+  const [loginWindowOpen, setLoginWindowOpen] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setClockLabel(formatClock(new Date()))
+      setClockLabel(CLOCK_FORMATTER.format(new Date()))
     }, 1000)
 
     return () => {
@@ -316,6 +309,73 @@ function App() {
     }
   }, [toast])
 
+  useLayoutEffect(() => {
+    if (!finderOpen) {
+      return
+    }
+
+    const syncFinderBounds = () => {
+      const scene = desktopSceneRef.current
+      const finder = finderWindowRef.current
+
+      if (!scene || !finder) {
+        return
+      }
+
+      const sceneRect = scene.getBoundingClientRect()
+      const finderRect = finder.getBoundingClientRect()
+      const maxX = Math.max(0, sceneRect.width - finderRect.width)
+      const maxY = Math.max(0, sceneRect.height - finderRect.height)
+
+      setFinderPosition((currentPosition) => {
+        if (!finderInitializedRef.current) {
+          finderInitializedRef.current = true
+          return {
+            x: clamp((sceneRect.width - finderRect.width) / 2, 0, maxX),
+            y: clamp((sceneRect.height - finderRect.height) / 2, 0, maxY),
+          }
+        }
+
+        return {
+          x: clamp(currentPosition.x, 0, maxX),
+          y: clamp(currentPosition.y, 0, maxY),
+        }
+      })
+    }
+
+    syncFinderBounds()
+    window.addEventListener('resize', syncFinderBounds)
+
+    return () => {
+      window.removeEventListener('resize', syncFinderBounds)
+    }
+  }, [finderOpen])
+
+  useEffect(() => {
+    const keepDesktopIconsInBounds = () => {
+      const scene = desktopSceneRef.current
+
+      if (!scene) {
+        return
+      }
+
+      const sceneRect = scene.getBoundingClientRect()
+      setDesktopIcons((currentIcons) =>
+        currentIcons.map((icon) => ({
+          ...icon,
+          ...clampDesktopPosition(icon.x, icon.y, sceneRect.width, sceneRect.height),
+        })),
+      )
+    }
+
+    keepDesktopIconsInBounds()
+    window.addEventListener('resize', keepDesktopIconsInBounds)
+
+    return () => {
+      window.removeEventListener('resize', keepDesktopIconsInBounds)
+    }
+  }, [])
+
   useEffect(() => {
     if (!finderDragState) {
       return
@@ -335,10 +395,10 @@ function App() {
 
       const sceneRect = scene.getBoundingClientRect()
       const finderRect = finder.getBoundingClientRect()
-      const rawX = event.clientX - sceneRect.left - finderDragState.offsetX
-      const rawY = event.clientY - sceneRect.top - finderDragState.offsetY
       const maxX = Math.max(0, sceneRect.width - finderRect.width)
       const maxY = Math.max(0, sceneRect.height - finderRect.height)
+      const rawX = event.clientX - sceneRect.left - finderDragState.offsetX
+      const rawY = event.clientY - sceneRect.top - finderDragState.offsetY
 
       setFinderPosition({
         x: clamp(rawX, 0, maxX),
@@ -417,42 +477,26 @@ function App() {
     }
   }, [desktopDragState])
 
-  useEffect(() => {
-    const keepFinderInBounds = () => {
-      const scene = desktopSceneRef.current
-      const finder = finderWindowRef.current
+  const recenterFinder = () => {
+    const scene = desktopSceneRef.current
+    const finder = finderWindowRef.current
 
-      if (!scene || !finder) {
-        return
-      }
-
-      const sceneRect = scene.getBoundingClientRect()
-      const finderRect = finder.getBoundingClientRect()
-      const maxX = Math.max(0, sceneRect.width - finderRect.width)
-      const maxY = Math.max(0, sceneRect.height - finderRect.height)
-
-      setFinderPosition((currentPosition) => ({
-        x: clamp(currentPosition.x, 0, maxX),
-        y: clamp(currentPosition.y, 0, maxY),
-      }))
-
-      setDesktopIcons((currentIcons) =>
-        currentIcons.map((icon) => ({
-          ...icon,
-          ...clampDesktopPosition(icon.x, icon.y, sceneRect.width, sceneRect.height),
-        })),
-      )
+    if (!scene || !finder) {
+      return
     }
 
-    keepFinderInBounds()
-    window.addEventListener('resize', keepFinderInBounds)
+    const sceneRect = scene.getBoundingClientRect()
+    const finderRect = finder.getBoundingClientRect()
+    const maxX = Math.max(0, sceneRect.width - finderRect.width)
+    const maxY = Math.max(0, sceneRect.height - finderRect.height)
 
-    return () => {
-      window.removeEventListener('resize', keepFinderInBounds)
-    }
-  }, [])
+    setFinderPosition({
+      x: clamp((sceneRect.width - finderRect.width) / 2, 0, maxX),
+      y: clamp((sceneRect.height - finderRect.height) / 2, 0, maxY),
+    })
+  }
 
-  const openCard = (appId: string, source: 'finder' | 'dock') => {
+  const openApp = (appId: string, source: 'finder' | 'dock' | 'desktop') => {
     const app = APP_MAP.get(appId)
 
     if (!app) {
@@ -466,12 +510,28 @@ function App() {
     if (source === 'dock') {
       setActiveDockAppId(appId)
     }
+
+    setToast(`${app.name}: ${app.description}`)
+
+    if (appId === 'vault-app' || appId === 'mdp-shortcut') {
+      setLoginWindowOpen(true)
+      setFinderDragState(null)
+      setFinderOpen(false)
+    }
   }
 
-  const handleMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
-    if (item === 'Finder') {
-      setFinderOpen(true)
+  const handleFinderMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
+    if (item !== 'Finder') {
+      return
     }
+
+    if (!finderOpen) {
+      finderInitializedRef.current = false
+      setFinderOpen(true)
+      return
+    }
+
+    recenterFinder()
   }
 
   const handleFinderDragStart = (event: ReactPointerEvent<HTMLElement>) => {
@@ -507,6 +567,12 @@ function App() {
       offsetX: event.clientX - finderRect.left,
       offsetY: event.clientY - finderRect.top,
     })
+    event.preventDefault()
+  }
+
+  const closeFinder = () => {
+    setFinderDragState(null)
+    setFinderOpen(false)
   }
 
   const handleFinderIconDragStart = (
@@ -600,7 +666,7 @@ function App() {
           </button>
           <nav className='top-menu-list' aria-label='Main menu'>
             {MENU_ITEMS.map((item) => (
-              <button key={item} className='top-menu' onClick={() => handleMenuClick(item)}>
+              <button key={item} className='top-menu' onClick={() => handleFinderMenuClick(item)}>
                 {item}
               </button>
             ))}
@@ -608,10 +674,30 @@ function App() {
         </div>
 
         <div className='top-bar__right'>
-          <img className='top-status-image top-status-image--battery' src='/battery.png' alt='Battery status' draggable={false} />
-          <img className='top-status-image top-status-image--wifi' src='/wifi.png' alt='Wi-Fi' draggable={false} />
-          <img className='top-status-image top-status-image--choice' src='/choice.png' alt='Choice' draggable={false} />
-          <img className='top-status-image top-status-image--night' src='/night.png' alt='Night mode' draggable={false} />
+          <img
+            className='top-status-image top-status-image--battery'
+            src='/battery.png'
+            alt='Battery status'
+            draggable={false}
+          />
+          <img
+            className='top-status-image top-status-image--wifi'
+            src='/wifi.png'
+            alt='Wi-Fi'
+            draggable={false}
+          />
+          <img
+            className='top-status-image top-status-image--choice'
+            src='/choice.png'
+            alt='Choice'
+            draggable={false}
+          />
+          <img
+            className='top-status-image top-status-image--night'
+            src='/night.png'
+            alt='Night mode'
+            draggable={false}
+          />
           <span className='top-bar__clock'>{clockLabel}</span>
         </div>
       </header>
@@ -639,17 +725,16 @@ function App() {
                 <button
                   className='window-dot window-dot--red'
                   aria-label='Close Finder'
-                  onClick={() => {
-                    setFinderDragState(null)
-                    setFinderOpen(false)
-                  }}
+                  onClick={closeFinder}
                 />
-                <button className='window-dot window-dot--yellow' aria-label='Minimize Finder' />
-                <button className='window-dot window-dot--green' aria-label='Zoom Finder' />
+                <button className='window-dot window-dot--yellow' aria-label='Minimize Finder' onClick={closeFinder} />
+                <button className='window-dot window-dot--green' aria-label='Center Finder' onClick={recenterFinder} />
               </div>
 
               <h1 className='finder-window__title'>
-                <span className='finder-window__folder' aria-hidden='true' />
+                <svg className='finder-window__folder' viewBox='0 0 18 14' aria-hidden='true'>
+                  <path d='M1.5 2.8h4.7l1.6 1.8h8.7v6.7H1.5z' />
+                </svg>
                 <span>Recents</span>
               </h1>
             </header>
@@ -687,7 +772,7 @@ function App() {
                     <button
                       key={app.id}
                       className={`finder-icon ${activeFinderAppId === app.id ? 'is-active' : ''}`}
-                      onClick={() => openCard(app.id, 'finder')}
+                      onClick={() => openApp(app.id, 'finder')}
                       onDragStart={(event) => handleFinderIconDragStart(event, app.id)}
                       draggable
                       title={app.name}
@@ -727,7 +812,10 @@ function App() {
                   top: desktopIcon.y,
                 }}
                 onPointerDown={(event) => handleDesktopIconPointerDown(event, desktopIcon.id)}
-                onClick={() => setActiveDesktopIconId(desktopIcon.id)}
+                onClick={() => {
+                  setActiveDesktopIconId(desktopIcon.id)
+                  openApp(desktopIcon.appId, 'desktop')
+                }}
                 aria-label={app.name}
               >
                 <img
@@ -742,6 +830,50 @@ function App() {
           })}
         </div>
 
+        {loginWindowOpen && (
+          <section className='login-space' aria-label='MDP login window'>
+            <p className='login-space__label'>LOGIN</p>
+            <div className='login-window'>
+              <header className='login-window__controls'>
+                <div className='window-dots'>
+                  <button
+                    className='window-dot window-dot--red'
+                    aria-label='Close login window'
+                    onClick={() => setLoginWindowOpen(false)}
+                  />
+                  <button className='window-dot window-dot--yellow' aria-label='Minimize login window' />
+                  <button className='window-dot window-dot--green' aria-label='Zoom login window' />
+                </div>
+              </header>
+
+              <div className='login-window__content'>
+                <h1 className='login-window__title'>Login</h1>
+                <form
+                  className='login-form'
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                  }}
+                >
+                  <label className='sr-only' htmlFor='login-username'>
+                    Username
+                  </label>
+                  <input id='login-username' className='login-input' placeholder='Username' type='text' />
+
+                  <label className='sr-only' htmlFor='login-email'>
+                    E-mail
+                  </label>
+                  <input id='login-email' className='login-input' placeholder='E-mail' type='email' />
+
+                  <label className='sr-only' htmlFor='login-website'>
+                    Website
+                  </label>
+                  <input id='login-website' className='login-input' placeholder='Website' type='text' />
+                </form>
+              </div>
+            </div>
+          </section>
+        )}
+
         {toast && <div className='desktop-toast'>{toast}</div>}
       </main>
 
@@ -753,7 +885,7 @@ function App() {
             <button
               key={app.id}
               className={`dock-item ${isActive ? 'is-active' : ''}`}
-              onClick={() => openCard(app.id, 'dock')}
+              onClick={() => openApp(app.id, 'dock')}
               aria-label={app.name}
             >
               <img
