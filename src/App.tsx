@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import './App.css'
+import GlassSurface from './components/glass/GlassSurface'
 import appStoreIcon from './assets/macos-icons/appstore.png'
 import calculatorIcon from './assets/macos-icons/calculator.png'
 import cardFindMyIcon from './assets/card-icons/findmy.png'
@@ -653,6 +654,20 @@ function App() {
     event.preventDefault()
   }
 
+  const loginInputGlassProps = {
+    borderRadius: 999,
+    borderWidth: 0.11,
+    brightness: 54,
+    opacity: 0.93,
+    blur: 11,
+    displace: 0.26,
+    backgroundOpacity: 0.08,
+    saturation: 1.3,
+    distortionScale: -205,
+    greenOffset: 12,
+    blueOffset: 24,
+  } as const
+
   return (
     <div className='mac-desktop'>
       <div className='wallpaper'>
@@ -832,10 +847,23 @@ function App() {
 
         {loginWindowOpen && (
           <section className='login-space' aria-label='MDP login window'>
-            <p className='login-space__label'>LOGIN</p>
-            <div className='login-window'>
+            <GlassSurface
+              className='login-window'
+              borderRadius={42}
+              borderWidth={0.11}
+              brightness={54}
+              opacity={0.94}
+              blur={12}
+              displace={0.36}
+              backgroundOpacity={0.08}
+              saturation={1.34}
+              distortionScale={-230}
+              redOffset={0}
+              greenOffset={12}
+              blueOffset={26}
+            >
               <header className='login-window__controls'>
-                <div className='window-dots'>
+                <div className='window-dots login-window__dots'>
                   <button
                     className='window-dot window-dot--red'
                     aria-label='Close login window'
@@ -847,30 +875,52 @@ function App() {
               </header>
 
               <div className='login-window__content'>
-                <h1 className='login-window__title'>Login</h1>
+                <GlassSurface
+                  className='login-window__title-shell'
+                  borderRadius={999}
+                  borderWidth={0.13}
+                  brightness={58}
+                  opacity={0.95}
+                  blur={10}
+                  displace={0.26}
+                  backgroundOpacity={0.12}
+                  saturation={1.18}
+                  distortionScale={-150}
+                  greenOffset={10}
+                  blueOffset={20}
+                >
+                  <h1 className='login-window__title'>Login</h1>
+                </GlassSurface>
+
                 <form
                   className='login-form'
                   onSubmit={(event) => {
                     event.preventDefault()
                   }}
                 >
-                  <label className='sr-only' htmlFor='login-username'>
-                    Username
-                  </label>
-                  <input id='login-username' className='login-input' placeholder='Username' type='text' />
+                  <GlassSurface className='login-input-shell' {...loginInputGlassProps}>
+                    <label className='sr-only' htmlFor='login-username'>
+                      Username
+                    </label>
+                    <input id='login-username' className='login-input' placeholder='Username' type='text' />
+                  </GlassSurface>
 
-                  <label className='sr-only' htmlFor='login-email'>
-                    E-mail
-                  </label>
-                  <input id='login-email' className='login-input' placeholder='E-mail' type='email' />
+                  <GlassSurface className='login-input-shell' {...loginInputGlassProps}>
+                    <label className='sr-only' htmlFor='login-email'>
+                      E-mail
+                    </label>
+                    <input id='login-email' className='login-input' placeholder='E-mail' type='email' />
+                  </GlassSurface>
 
-                  <label className='sr-only' htmlFor='login-website'>
-                    Website
-                  </label>
-                  <input id='login-website' className='login-input' placeholder='Website' type='text' />
+                  <GlassSurface className='login-input-shell' {...loginInputGlassProps}>
+                    <label className='sr-only' htmlFor='login-website'>
+                      Website
+                    </label>
+                    <input id='login-website' className='login-input' placeholder='Website' type='text' />
+                  </GlassSurface>
                 </form>
               </div>
-            </div>
+            </GlassSurface>
           </section>
         )}
 
