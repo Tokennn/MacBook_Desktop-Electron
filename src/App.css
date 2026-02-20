@@ -536,40 +536,44 @@
 }
 
 .login-window__dots {
-  left: 14px;
-  top: 12px;
+  left: 10px;
+  top: 9px;
   gap: 10px;
   transform: none;
   z-index: 9;
   pointer-events: auto;
+  isolation: isolate;
 }
 
-.login-window__dots .window-dot {
+.login-window__dot {
   width: 15px;
   height: 15px;
-  border: 1px solid rgba(23, 34, 46, 0.34);
+  border: 1px solid rgba(24, 35, 48, 0.46);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.28),
-    0 1px 2px rgba(3, 10, 16, 0.32);
-  filter: none;
+    inset 0 1px 1px rgba(255, 255, 255, 0.38),
+    0 1px 2px rgba(3, 10, 16, 0.34);
+  filter: saturate(1.1);
   mix-blend-mode: normal;
   opacity: 1;
 }
 
-.login-window__dots .window-dot--red {
-  background-color: #ff5f57;
+.login-window__dot--red {
+  background-color: #ff5f57 !important;
+  background: radial-gradient(circle at 30% 28%, #ffb9b4 0%, #ff5f57 40%, #e04640 100%) !important;
 }
 
-.login-window__dots .window-dot--yellow {
-  background-color: #ffbd2e;
+.login-window__dot--yellow {
+  background-color: #febc2e !important;
+  background: radial-gradient(circle at 30% 28%, #ffe2a8 0%, #febc2e 42%, #e1980b 100%) !important;
 }
 
-.login-window__dots .window-dot--green {
-  background-color: #28c840;
+.login-window__dot--green {
+  background-color: #28c840 !important;
+  background: radial-gradient(circle at 30% 28%, #9ff3af 0%, #28c840 42%, #1f9e33 100%) !important;
 }
 
-.login-window__dots .window-dot:hover {
-  filter: brightness(1.08) saturate(1.06);
+.login-window__dot:hover {
+  filter: brightness(1.08) saturate(1.22);
 }
 
 .login-window__content {
@@ -800,6 +804,19 @@
   text-shadow: 0 1px 2px rgba(8, 20, 32, 0.24);
 }
 
+.login-submit-shell--login {
+  width: min(190px, 100%);
+  min-height: 50px;
+  justify-self: center;
+  margin-inline: auto;
+}
+
+.login-submit-button--login {
+  padding: 0 16px;
+  font-size: clamp(17px, 1.65vw, 24px);
+  font-weight: 650;
+}
+
 .login-submit-button:disabled {
   opacity: 0.48;
   cursor: not-allowed;
@@ -820,10 +837,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
-  font-weight: 700;
-  color: rgba(239, 247, 255, 0.96);
-  text-shadow: 0 1px 2px rgba(16, 35, 64, 0.34);
+  overflow: hidden;
+}
+
+.generator-avatar__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .generator-panel {
@@ -858,7 +880,41 @@
 }
 
 .generator-password-shell > .glass-surface__content {
+  padding: 0;
+}
+
+.generator-password-button {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 260ms ease,
+    filter 260ms ease;
+}
+
+.generator-password-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.07) saturate(1.06);
+}
+
+.generator-password-button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.generator-password-button:focus-visible {
+  outline: 2px solid rgba(187, 223, 250, 0.72);
+  outline-offset: 2px;
+}
+
+.generator-password-button:disabled {
+  cursor: default;
 }
 
 .generator-password {
@@ -1055,6 +1111,15 @@
     min-height: 58px;
   }
 
+  .login-submit-shell--login {
+    width: min(174px, 100%);
+    min-height: 46px;
+  }
+
+  .login-submit-button--login {
+    font-size: clamp(16px, 1.5vw, 22px);
+  }
+
   .login-input {
     padding: 12px 22px;
     font-size: clamp(19px, 2.25vw, 36px);
@@ -1162,6 +1227,15 @@
 
   .login-submit-shell {
     min-height: 54px;
+  }
+
+  .login-submit-shell--login {
+    width: min(168px, 100%);
+    min-height: 44px;
+  }
+
+  .login-submit-button--login {
+    font-size: clamp(15px, 2.2vw, 20px);
   }
 
   .login-input {
@@ -1321,6 +1395,16 @@
     width: min(220px, 100%);
   }
 
+  .login-submit-shell--login {
+    width: min(160px, 100%);
+    min-height: 40px;
+  }
+
+  .login-submit-button--login {
+    font-size: clamp(14px, 3.8vw, 18px);
+    padding: 0 12px;
+  }
+
   .login-input {
     padding: 8px 14px;
     font-size: clamp(16px, 5vw, 22px);
@@ -1378,6 +1462,7 @@
   .login-input-shell,
   .login-input-shell::before,
   .login-submit-shell,
+  .generator-password-button,
   .generator-typing__caret {
     transition: none;
     animation: none;

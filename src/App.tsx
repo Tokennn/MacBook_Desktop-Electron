@@ -1,6 +1,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent as ReactChangeEvent,
@@ -17,6 +18,7 @@ import cardHomeIcon from './assets/card-icons/home.png'
 import cardLockIcon from './assets/card-icons/lock.png'
 import cardTranslateIcon from './assets/card-icons/translate.png'
 import cardWalletIcon from './assets/card-icons/wallet.png'
+import contactsIcon from './assets/macos-icons/contacts.png'
 import facetimeIcon from './assets/macos-icons/facetime.png'
 import mailIcon from './assets/macos-icons/mail.png'
 import messagesIcon from './assets/macos-icons/messages.png'
@@ -64,6 +66,14 @@ type LoginFormState = {
 type LoginSession = LoginFormState
 
 type LoginFieldErrors = Partial<Record<keyof LoginFormState, string>>
+
+type AvatarTheme = {
+  top: string
+  bottom: string
+  shirt: string
+  hair: string
+  skin: string
+}
 
 type DesktopIcon = {
   id: string
@@ -218,6 +228,14 @@ const PASSWORD_LOWERCASE = 'abcdefghijkmnopqrstuvwxyz'
 const PASSWORD_DIGITS = '23456789'
 const PASSWORD_SYMBOLS = '!@#$%*_-+'
 const PASSWORD_POOL = `${PASSWORD_UPPERCASE}${PASSWORD_LOWERCASE}${PASSWORD_DIGITS}${PASSWORD_SYMBOLS}`
+const DEFAULT_AVATAR_THEMES: AvatarTheme[] = [
+  { top: '#89d0ff', bottom: '#4378e3', shirt: '#5f9dff', hair: '#1f2f43', skin: '#f1ceb0' },
+  { top: '#8fdcbc', bottom: '#3f8b7f', shirt: '#4fae8a', hair: '#2f2118', skin: '#efc39e' },
+  { top: '#d4b7ff', bottom: '#6c63e0', shirt: '#8e78f0', hair: '#222038', skin: '#f3cfb6' },
+  { top: '#ffd2a3', bottom: '#db7d4f', shirt: '#ec9262', hair: '#3b2a22', skin: '#ebbe9a' },
+  { top: '#b8e2ff', bottom: '#4d85d4', shirt: '#6a9ee2', hair: '#2a2d36', skin: '#f4d4bc' },
+  { top: '#b7f2d2', bottom: '#4f9d7f', shirt: '#58b789', hair: '#22251f', skin: '#f0c7a7' },
+]
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -341,9 +359,87 @@ function createGeneratedPassword(session: LoginSession) {
   return chars.join('')
 }
 
-function getAvatarLabel(username: string) {
-  const trimmed = username.trim()
-  return trimmed ? trimmed[0].toUpperCase() : '?'
+function createDefaultAvatarSrc(session: LoginSession) {
+  const seed = seedFromValue(`${session.username}|${session.email}|${session.website}`)
+  const theme = DEFAULT_AVATAR_THEMES[seed % DEFAULT_AVATAR_THEMES.length]
+  const hairVariant = seed % 3
+  const hasGlasses = seed % 5 === 0
+  const mouthPath = seed % 2 === 0 ? 'M48 68c3 3 9 3 12 0' : 'M48 69c3-2 9-2 12 0'
+  const eyebrowTilt = seed % 2 === 0 ? '-1' : '1'
+
+  const hairPath =
+    hairVariant === 0
+      ? 'M36 45c0-13 11-24 24-24s24 10 24 24c-5-5-12-8-24-8s-19 3-24 8Z'
+      : hairVariant === 1
+        ? 'M35 47c2-15 12-25 25-25 12 0 23 8 25 25-6-6-14-9-25-9s-19 3-25 9Z'
+        : 'M35 45c2-14 12-23 25-23 12 0 22 8 25 23-7-5-15-8-25-8s-18 3-25 8Z'
+
+  const glassesMarkup = hasGlasses
+    ? "<g fill='none' stroke='rgba(40,55,75,0.74)' stroke-width='1.8'><rect x='41' y='53' width='12' height='8' rx='3'/><rect x='67' y='53' width='12' height='8' rx='3'/><path d='M53 57h14'/></g>"
+    : ''
+
+  const svg = `
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>
+      <defs>
+        <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+          <stop offset='0%' stop-color='${theme.top}'/>
+          <stop offset='100%' stop-color='${theme.bottom}'/>
+        </linearGradient>
+      </defs>
+      <rect width='120' height='120' rx='60' fill='url(#bg)'/>
+      <circle cx='60' cy='47' r='18.5' fill='${theme.skin}'/>
+      <path d='${hairPath}' fill='${theme.hair}'/>
+      <path d='M28 112c3-17 17-31 32-31s29 14 32 31' fill='${theme.shirt}'/>
+      <path d='M40 50c4 4 8 0 12 0' stroke='rgba(26,35,48,0.32)' stroke-width='1.8' stroke-linecap='round' transform='rotate(${eyebrowTilt} 46 50)'/>
+      <path d='M68 50c4 4 8 0 12 0' stroke='rgba(26,35,48,0.32)' stroke-width='1.8' stroke-linecap='round' transform='rotate(${-eyebrowTilt} 74 50)'/>
+      <circle cx='52' cy='58' r='2.3' fill='rgba(32,38,52,0.7)'/>
+      <circle cx='68' cy='58' r='2.3' fill='rgba(32,38,52,0.7)'/>
+      <path d='${mouthPath}' fill='none' stroke='rgba(58,34,36,0.54)' stroke-width='1.9' stroke-linecap='round'/>
+      <path d='M45 75h30c-2 7-8 10-15 10s-13-3-15-10Z' fill='rgba(255,255,255,0.2)'/>
+      <circle cx='40' cy='30' r='20' fill='rgba(255,255,255,0.18)'/>
+      ${glassesMarkup}
+    </svg>
+  `
+
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+async function copyTextToClipboard(value: string) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return false
+  }
+
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value)
+      return true
+    } catch {
+      // Fallback for environments where the async clipboard API is blocked.
+    }
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.top = '0'
+  textarea.style.left = '0'
+  textarea.style.opacity = '0'
+  textarea.style.pointerEvents = 'none'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+
+  let copied = false
+
+  try {
+    copied = document.execCommand('copy')
+  } catch {
+    copied = false
+  }
+
+  document.body.removeChild(textarea)
+  return copied
 }
 
 function renderSidebarGlyph(glyph: SidebarGlyph) {
@@ -893,6 +989,19 @@ function App() {
     setToast(`Mot de passe régénéré pour ${loginSession.website}`)
   }
 
+  const handleCopyGeneratedPassword = async () => {
+    if (!generatedPassword) {
+      return
+    }
+
+    const copied = await copyTextToClipboard(generatedPassword)
+    setToast(
+      copied
+        ? 'Mot de passe copié dans le presse-papiers.'
+        : 'Impossible de copier le mot de passe.',
+    )
+  }
+
   const switchToLoginForm = () => {
     if (!loginSession) {
       return
@@ -1037,7 +1146,13 @@ function App() {
   const loginErrorText =
     loginFieldErrors.username ?? loginFieldErrors.email ?? loginFieldErrors.website ?? ''
   const loginTitle = loginSession ? 'Générateur' : 'Login'
-  const avatarLabel = getAvatarLabel(loginSession?.username ?? '')
+  const profileAvatarSrc = useMemo(() => {
+    if (!loginSession) {
+      return contactsIcon
+    }
+
+    return createDefaultAvatarSrc(loginSession)
+  }, [loginSession])
 
   return (
     <div className='mac-desktop'>
@@ -1245,12 +1360,21 @@ function App() {
               <header className='login-window__controls'>
                 <div className='window-dots login-window__dots'>
                   <button
-                    className='window-dot window-dot--red'
+                    className='window-dot login-window__dot login-window__dot--red'
                     aria-label='Close login window'
                     onClick={closeLoginWindow}
+                    style={{ backgroundColor: '#ff5f57' }}
                   />
-                  <button className='window-dot window-dot--yellow' aria-label='Minimize login window' />
-                  <button className='window-dot window-dot--green' aria-label='Zoom login window' />
+                  <button
+                    className='window-dot login-window__dot login-window__dot--yellow'
+                    aria-label='Minimize login window'
+                    style={{ backgroundColor: '#febc2e' }}
+                  />
+                  <button
+                    className='window-dot login-window__dot login-window__dot--green'
+                    aria-label='Zoom login window'
+                    style={{ backgroundColor: '#28c840' }}
+                  />
                 </div>
               </header>
 
@@ -1275,7 +1399,12 @@ function App() {
 
                   {loginSession && (
                     <div className='generator-avatar' aria-label={`Profil ${loginSession.username}`}>
-                      {avatarLabel}
+                      <img
+                        className='generator-avatar__image'
+                        src={profileAvatarSrc}
+                        alt={`Photo de profil de ${loginSession.username}`}
+                        draggable={false}
+                      />
                     </div>
                   )}
                 </div>
@@ -1345,11 +1474,16 @@ function App() {
                       </p>
                     )}
 
-                    <GlassSurface className='login-submit-shell' {...loginInputGlassProps}>
+                    <GlassSurface
+                      className='login-submit-shell login-submit-shell--login'
+                      style={{ width: '170px', minHeight: '44px' }}
+                      {...loginInputGlassProps}
+                    >
                       <button
                         type='submit'
-                        className='login-submit-button'
+                        className='login-submit-button login-submit-button--login'
                         disabled={loginSubmitDisabled}
+                        style={{ fontSize: '18px', paddingInline: '12px' }}
                       >
                         Se connecter
                       </button>
@@ -1376,9 +1510,19 @@ function App() {
                       greenOffset={11}
                       blueOffset={22}
                     >
-                      <p className='generator-password'>
-                        {generatedPassword || 'Clique sur Générer ici'}
-                      </p>
+                      <button
+                        type='button'
+                        className='generator-password-button'
+                        onClick={() => {
+                          void handleCopyGeneratedPassword()
+                        }}
+                        disabled={!generatedPassword}
+                        aria-label='Copier le mot de passe généré'
+                      >
+                        <p className='generator-password'>
+                          {generatedPassword || 'Clique sur Générer ici'}
+                        </p>
+                      </button>
                     </GlassSurface>
 
                     <GlassSurface className='login-submit-shell generator-action-shell' {...loginInputGlassProps}>
