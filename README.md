@@ -129,6 +129,6 @@ LICENSE               (Licence du projet)
 
 ## ⚖️ Auto-Évaluation
 
-- **Ce qui fonctionne bien :** ...
-- **Difficultés rencontrées :** ...
-- **Si c'était à refaire :** ...
+- **Ce qui fonctionne bien :** = Login + Tous type d'interaction avec chaque élément de l'app ou sur le bureau + Génération ; Modification ; listing..
+- **Difficultés rencontrées :** = Listing avec possibilité de scroll vers le bac (à faire !!)+ Génération de mot de passe pour dissocier un autre nom de domaine à un autre pour qu'il soit bien émis dans le listing..
+- **Si c'était à refaire :** = Avoir plus de fluidité sur l'app en elle même..
