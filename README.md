@@ -102,12 +102,14 @@ LICENSE               (Licence du projet)
 
 ## 📸 Démonstration (Screenshots & Gifs)
 
+<video src="src/assets/Enregistrement de l’écran 2026-03-09 à 19.55.41.mov" controls width="100%"></video>
+
+[Télécharger la vidéo de démonstration](src/assets/Enregistrement%20de%20l%E2%80%99e%CC%81cran%202026-03-09%20a%CC%80%2019.55.41.mov)
 
 ---
 
-## 🤖 Section IA & Méthodologie (OBLIGATOIRE)
+## 🤖 Section IA & Méthodologie 
 
-*Transparence totale requise sur l'usage de l'IA (ChatGPT, Copilot, Gemini).*
 
 ### 1. Prompts Utilisés
 
