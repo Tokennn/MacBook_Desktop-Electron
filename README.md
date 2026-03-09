@@ -62,14 +62,6 @@ flowchart LR
 - **Framework :** Electron ; React ; Node js 
 - **Outils :** Figma ; Cursor
 
----
-
-## 📸 Démonstration (Screenshots & Gifs)
-
-
-
-
-
 
 ---
 
