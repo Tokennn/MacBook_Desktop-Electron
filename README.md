@@ -44,18 +44,7 @@ Application de gestion et de stockage de mot de passe en fonction du site web au
 
 **Intégration via Mermaid JS ou PlantUML obligatoire :**
 
-```mermaid
-flowchart LR
-    U[Utilisateur] --> A[Ouvrir l'application MDP]
-    U --> B[Se connecter / choisir un profil]
-    U --> C[Générer un mot de passe]
-    U --> D[Associer un mot de passe à un domaine]
-    U --> E[Consulter le coffre-fort]
-    U --> F[Rechercher un mot de passe]
-    U --> G[Afficher / masquer un mot de passe]
-    U --> H[Copier un mot de passe]
 
-```
 
 
 ```mermaid
