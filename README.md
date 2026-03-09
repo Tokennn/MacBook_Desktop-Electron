@@ -13,9 +13,6 @@
 
 - Plan UML detaille et structure: [`doc/UML.md`](doc/UML.md)
 
-```markdown
-
-
 ## 📄 Description
 Application de gestion et de stockage de mot de passe en fonction du site web auquel on l'affecte..
 
@@ -37,57 +34,27 @@ Application de gestion et de stockage de mot de passe en fonction du site web au
 
 
 ## 📐 Architecture & UML
-> Pas de diagrammes de classes générés automatiquement et illisibles !
-> Seuls les diagrammes **PERTINENTS** pour comprendre la logique métier (Use Case, Sequence, ou un Class Diagram ciblé sur le cœur du système).
+Architecture en 3 couches :
+- **Renderer (`src/`)** : interface React (bureau visuel + gestionnaire de mots de passe).
+- **Main (`electron/main/`)** : cycle de vie Electron et APIs natives.
+- **Preload (`electron/preload/`)** : pont IPC sécurisé entre UI et process principal.
 
-
-
-**Intégration via Mermaid JS ou PlantUML obligatoire :**
-
-
-
-
+### Use Case (fonctionnel)
 ```mermaid
-sequenceDiagram
-    participant U as Utilisateur
-    participant UI as Renderer React
-    participant V as Vault State (mémoire)
-    participant C as Presse-papiers
-
-    U->>UI: Saisie domaine + clic "Générer"
-    UI->>UI: Génération mot de passe
-    UI->>V: Ajout entrée {domaine, mot de passe}
-    V-->>UI: Liste mise à jour
-    UI-->>U: Affichage dans la liste
-
-    U->>UI: Clic "Copier"
-    UI->>C: writeText(mot de passe)
-    C-->>UI: Confirmation
-    UI-->>U: Toast "Mot de passe copié"
+flowchart LR
+    U[Utilisateur] --> A[Ouvrir l'application MDP]
+    U --> B[Se connecter / choisir un profil]
+    U --> C[Générer un mot de passe]
+    U --> D[Associer un mot de passe à un domaine]
+    U --> E[Consulter le coffre-fort]
+    U --> F[Rechercher un mot de passe]
+    U --> G[Afficher / masquer un mot de passe]
+    U --> H[Copier un mot de passe]
 ```
 
 
-```mermaid
-sequenceDiagram
-    participant UI as Renderer React
-    participant P as Preload IPC
-    participant M as Electron Main
-    participant U as electron-updater
 
-    UI->>P: invoke('check-update')
-    P->>M: IPC check-update
-    M->>U: checkForUpdatesAndNotify()
-    U-->>M: update-available / update-not-available
-    M-->>UI: send('update-can-available', infos)
 
-    UI->>P: invoke('start-download')
-    P->>M: IPC start-download
-    M->>U: downloadUpdate()
-    U-->>M: download-progress
-    M-->>UI: send('download-progress', %)
-    U-->>M: update-downloaded
-    M-->>UI: send('update-downloaded')
-```
 
 ## 🛠 Stack Technique
 
@@ -99,13 +66,9 @@ sequenceDiagram
 
 ## 📸 Démonstration (Screenshots & Gifs)
 
-> Une image vaut mille mots, une animation en vaut dix mille.  
-> **Les Gifs animés ou courtes vidéos montrant l'interaction sont vivement recommandés.**
 
 
-| Écran d'accueil | Démo Interaction (Gif) |
-| --------------- | ---------------------- |
-| Accueil         | Démo                   |
+
 
 
 ---
@@ -116,7 +79,7 @@ Guide pas-à-pas pour qu'un développeur puisse lancer votre projet.
 
 ```bash
 # Cloner le dépôt
-git clone [https://github.com/votre-user/votre-projet.git](https://github.com/votre-user/votre-projet.git)
+git clone [https://github.com/votre-user/votre-projet.git](https://github.com/Tokennn/MacBook_Desktop-Electron.git)
 
 # Installer les dépendances
 npm install / pip install -r requirements.txt
@@ -197,7 +160,3 @@ npm start / python main.py
 - **Ce qui fonctionne bien :** ...
 - **Difficultés rencontrées :** ...
 - **Si c'était à refaire :** ...
-
-```
-
-```
