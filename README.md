@@ -111,15 +111,12 @@ LICENSE               (Licence du projet)
 
 ### 1. Prompts Utilisés
 
-- *"Explique-moi comment centrer une div en CSS grid"* -> Pour comprendre le layout.
-- *"Génère une classe User en C#"* -> Pour le boilerplate.
+- *"Pouvoir avoir un listing automatique des mots de passe en fonction de chaque nom de domaine qui lui est "attribué""* -> Pour comprendre la logique..
 
-### 2. Modifications Manuelles & Debug
+- *"Comment implémenter correctement le liquid glass"* -> Pour la "structure de la card principale".
 
-- L'IA a proposé d'utiliser une librairie dépréciée (`x`), nous l'avons remplacée par `y`.
-- Le code généré pour la boucle `for` était infini, nous l'avons corrigé manuellement ligne 42.
 
-### 3. Répartition Code IA vs Code Humain
+### 2. Répartition Code IA vs Code Humain
 
 - **Boilerplate / Config :** 30% IA / 70% Humain.
 - **Logique Métier (Algorithme) :** 80% IA.
