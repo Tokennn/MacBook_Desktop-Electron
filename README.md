@@ -82,10 +82,10 @@ Guide pas-à-pas pour qu'un développeur puisse lancer votre projet.
 git clone (https://github.com/Tokennn/MacBook_Desktop-Electron.git)
 
 # Installer les dépendances
-npm install / pip install -r requirements.txt
+npm install i
 
 # Lancer l'application
-npm start / python main.py
+npm run dev
 ```
 
 ---
@@ -93,12 +93,17 @@ npm start / python main.py
 ### 🏗️ Structure
 
 ```text
-/assets       (Images, logos, Gifs de démo)
-/src          (Code source)
-/doc          (Exports PDF des maquettes, Diagrammes supplémentaires)
-.gitignore    (Indispensable ! Pas de /node_modules ou /bin)
-README.md     (Le rapport final complet)
-LICENSE       (MIT ou Apache)
+/src                  (Interface React : écrans, composants, styles, assets UI)
+/electron             (Processus main + preload Electron)
+/public               (Fichiers statiques servis par Vite)
+/doc                  (UML et documentation projet)
+/build                (Icônes de build Electron : .icns/.ico/.png)
+README.md             (Documentation principale du projet)
+package.json          (Scripts et dépendances)
+vite.config.ts        (Configuration Vite)
+electron-builder.json (Configuration packaging desktop)
+.gitignore            (Exclusions Git)
+LICENSE               (Licence du projet)
 ```
 
 ---
