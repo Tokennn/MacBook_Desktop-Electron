@@ -40,7 +40,7 @@ Application de gestion et de stockage de mot de passe en fonction du site web au
 > Pas de diagrammes de classes générés automatiquement et illisibles !
 > Seuls les diagrammes **PERTINENTS** pour comprendre la logique métier (Use Case, Sequence, ou un Class Diagram ciblé sur le cœur du système).
 
-<!-- ```mermaid
+```mermaid
 flowchart LR
     U[Utilisateur] --> A[Ouvrir l'application MDP]
     U --> B[Se connecter / choisir un profil]
@@ -51,7 +51,7 @@ flowchart LR
     U --> G[Afficher / masquer un mot de passe]
     U --> H[Copier un mot de passe]
 
-``` -->
+```
 
 **Intégration via Mermaid JS ou PlantUML obligatoire :**
 
