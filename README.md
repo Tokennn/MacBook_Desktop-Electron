@@ -102,9 +102,11 @@ LICENSE               (Licence du projet)
 
 ## 📸 Démonstration (Screenshots & Gifs)
 
-<video src="src/assets/Enregistrement de l’écran 2026-03-09 à 19.55.41.mov" controls width="100%"></video>
+[![Voir la démo vidéo](src/assets/demo-preview.gif)](https://github.com/Tokennn/MacBook_Desktop-Electron/raw/main/src/assets/demo.mp4)
 
-[Télécharger la vidéo de démonstration](src/assets/Enregistrement%20de%20l%E2%80%99e%CC%81cran%202026-03-09%20a%CC%80%2019.55.41.mov)
+<video controls width="100%" poster="src/assets/demo-preview.png">
+  <source src="src/assets/demo.mp4" type="video/mp4" />
+</video>
 
 ---
 
