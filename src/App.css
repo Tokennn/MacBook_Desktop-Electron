@@ -508,6 +508,10 @@
   max-height: calc(100vh - 200px);
 }
 
+.login-window--vault > .glass-surface__content {
+  overflow: hidden;
+}
+
 .login-window > .glass-surface__content {
   display: flex;
   flex-direction: column;
@@ -610,6 +614,8 @@
   align-items: stretch;
   gap: 10px;
   padding: 28px 16px 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .login-window__header-row {
@@ -1045,9 +1051,10 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
+  overflow: hidden;
 }
 
 .vault-toolbar {
@@ -1056,6 +1063,7 @@
   justify-content: flex-end;
   gap: 12px;
   padding-right: 8px;
+  flex-shrink: 0;
 }
 
 .vault-search-shell {
@@ -1079,17 +1087,18 @@
 }
 
 .vault-columns {
-  flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.84fr);
   gap: 12px;
+  overflow: hidden;
 }
 
 .vault-card {
   height: 100%;
   min-height: 0;
   border-radius: clamp(24px, 3vw, 42px);
+  overflow: hidden;
 }
 
 .vault-card > .glass-surface__content {
@@ -1101,10 +1110,11 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 9px;
   padding: 20px 18px 16px;
+  overflow: hidden;
 }
 
 .vault-card-title-shell {
@@ -1132,8 +1142,31 @@
   padding: 2px 2px 4px;
   list-style: none;
   display: grid;
+  align-content: start;
   gap: 8px;
+  height: 100%;
+  min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(202, 227, 248, 0.62) rgba(13, 29, 43, 0.3);
+}
+
+.vault-password-list::-webkit-scrollbar,
+.vault-domain-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vault-password-list::-webkit-scrollbar-track,
+.vault-domain-list::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(13, 29, 43, 0.3);
+}
+
+.vault-password-list::-webkit-scrollbar-thumb,
+.vault-domain-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(219, 239, 255, 0.78) 0%, rgba(160, 200, 229, 0.72) 100%);
+  border: 1px solid rgba(13, 29, 43, 0.25);
 }
 
 .vault-password-list {

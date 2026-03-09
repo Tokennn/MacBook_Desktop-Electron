@@ -4,7 +4,7 @@
 
 ## 👥 Auteurs
 
-- **Quentin CONTREAU* (Rôle : UI/UX Designer + Dev Deskotp) - [[https://github.com/Tokennn]](https://github.com/Tokennn])
+- **Quentin CONTREAU* (Rôle : UI/UX Designer + Dev Desktop) - [[https://github.com/Tokennn]](https://github.com/Tokennn])
 
 ## 🛫 Quick Setup  
 
@@ -17,26 +17,41 @@
 
 
 ## 📄 Description
-Une phrase d'accroche ("Pitch").
-Description détaillée de ce que fait l'application, pourquoi elle existe, et à qui elle s'adresse.
+Application de gestion et de stockage de mot de passe en fonction du site web auquel on l'affecte..
 
 ### Fonctionnalités Clés
 
-> ⚠️ **Focus Desktop :** [Décrire ici la fonctionnalité native implémentée, ex: "L'application se réduit dans le System Tray et envoie une notification native à la fin d'un téléchargement."]
+> ⚠️ **Focus Desktop :** [L’interface reproduit visuellement un bureau d’ordinateur (barre du haut, dock, icônes), mais une seule application est réellement fonctionnelle et lançable : le gestionnaire de mots de passe. Les autres éléments servent de décor/repères UX pour simuler un environnement desktop.]
 
-* [x] Feature 1 (ex: Gestion des utilisateurs)
-* [x] Feature 2 (ex: Export PDF)
-* [ ] Feature 3 (Non implémentée / À venir)
+* [x] Feature 1 : Login
+* [x] Feature 2 : Génération mdp + Intégration du site 
+* [x] Feature 3 : Visualisation / Listing des mots de passe en fonction de leur nom de domaine 
+* [x] Feature 4 : Modification profile
+* [x] Feature 5 : Extraction PDF ou autre.. (à faire)
 
 ## 🎨 Conception & Design
-> Lien vers la maquette complète (Figma ou Penpot).
-> **[Voir la maquette sur Figma](Lien_Public_Figma)**
+> Lien vers la maquette complète (Figma).
+> **[Voir la maquette sur Figma](https://www.figma.com/design/xRihqpY6yq7j2GvFPsFW8J/MacBook.x.Electron?node-id=0-1&t=s9odWvPNl8Sh0vZo-1)**
 
-Insérez ici une vue globale de la maquette exportée en image pour l'aperçu rapide.
+<img src="src/assets/Capture d’écran 2026-03-09 à 19.25.07.png">
+
 
 ## 📐 Architecture & UML
 > Pas de diagrammes de classes générés automatiquement et illisibles !
 > Seuls les diagrammes **PERTINENTS** pour comprendre la logique métier (Use Case, Sequence, ou un Class Diagram ciblé sur le cœur du système).
+
+```mermaid
+flowchart LR
+    U[Utilisateur] --> A[Ouvrir l'application MDP]
+    U --> B[Se connecter / choisir un profil]
+    U --> C[Générer un mot de passe]
+    U --> D[Associer un mot de passe à un domaine]
+    U --> E[Consulter le coffre-fort]
+    U --> F[Rechercher un mot de passe]
+    U --> G[Afficher / masquer un mot de passe]
+    U --> H[Copier un mot de passe]
+
+```
 
 **Intégration via Mermaid JS ou PlantUML obligatoire :**
 
