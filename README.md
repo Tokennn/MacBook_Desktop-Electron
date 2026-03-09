@@ -64,8 +64,8 @@ sequenceDiagram
     UI->>C: writeText(mot de passe)
     C-->>UI: Confirmation
     UI-->>U: Toast "Mot de passe copié"
-
 ```
+
 
 ```mermaid
 sequenceDiagram
@@ -87,7 +87,6 @@ sequenceDiagram
     M-->>UI: send('download-progress', %)
     U-->>M: update-downloaded
     M-->>UI: send('update-downloaded')
-
 ```
 
 ## 🛠 Stack Technique
