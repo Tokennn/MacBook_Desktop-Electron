@@ -41,6 +41,9 @@ Application de gestion et de stockage de mot de passe en fonction du site web au
 > Seuls les diagrammes **PERTINENTS** pour comprendre la logique métier (Use Case, Sequence, ou un Class Diagram ciblé sur le cœur du système).
 
 
+
+**Intégration via Mermaid JS ou PlantUML obligatoire :**
+
 ```mermaid
 flowchart LR
     U[Utilisateur] --> A[Ouvrir l'application MDP]
@@ -54,18 +57,6 @@ flowchart LR
 
 ```
 
-**Intégration via Mermaid JS ou PlantUML obligatoire :**
-
-```mermaid
-sequenceDiagram
-    participant U as Utilisateur
-    participant App as Application
-    participant Sys as Système de Fichiers
-    U->>App: Clique sur "Sauvegarder"
-    App->>Sys: Écrit le fichier JSON
-    Sys-->>App: Confirmation écriture
-    App-->>U: Affiche Notification Native
-```
 
 ```mermaid
 sequenceDiagram
