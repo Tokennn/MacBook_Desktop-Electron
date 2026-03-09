@@ -40,6 +40,7 @@ Application de gestion et de stockage de mot de passe en fonction du site web au
 > Pas de diagrammes de classes générés automatiquement et illisibles !
 > Seuls les diagrammes **PERTINENTS** pour comprendre la logique métier (Use Case, Sequence, ou un Class Diagram ciblé sur le cœur du système).
 
+
 ```mermaid
 flowchart LR
     U[Utilisateur] --> A[Ouvrir l'application MDP]
@@ -64,6 +65,49 @@ sequenceDiagram
     App->>Sys: Écrit le fichier JSON
     Sys-->>App: Confirmation écriture
     App-->>U: Affiche Notification Native
+```
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant UI as Renderer React
+    participant V as Vault State (mémoire)
+    participant C as Presse-papiers
+
+    U->>UI: Saisie domaine + clic "Générer"
+    UI->>UI: Génération mot de passe
+    UI->>V: Ajout entrée {domaine, mot de passe}
+    V-->>UI: Liste mise à jour
+    UI-->>U: Affichage dans la liste
+
+    U->>UI: Clic "Copier"
+    UI->>C: writeText(mot de passe)
+    C-->>UI: Confirmation
+    UI-->>U: Toast "Mot de passe copié"
+
+```
+
+```mermaid
+sequenceDiagram
+    participant UI as Renderer React
+    participant P as Preload IPC
+    participant M as Electron Main
+    participant U as electron-updater
+
+    UI->>P: invoke('check-update')
+    P->>M: IPC check-update
+    M->>U: checkForUpdatesAndNotify()
+    U-->>M: update-available / update-not-available
+    M-->>UI: send('update-can-available', infos)
+
+    UI->>P: invoke('start-download')
+    P->>M: IPC start-download
+    M->>U: downloadUpdate()
+    U-->>M: download-progress
+    M-->>UI: send('download-progress', %)
+    U-->>M: update-downloaded
+    M-->>UI: send('update-downloaded')
+
 ```
 
 ## 🛠 Stack Technique
