@@ -102,31 +102,6 @@ LICENSE               (Licence du projet)
 
 ## 📸 Démonstration (Screenshots & Gifs)
 
-> Une image vaut mille mots, une animation en vaut dix mille.  
-> **Les Gifs animés ou courtes vidéos montrant l'interaction sont vivement recommandés.**
-
-
-| Écran d'accueil | Démo Interaction (Gif) |
-| --------------- | ---------------------- |
-| Accueil         | Démo                   |
-
-
----
-
-## 🚀 Installation & Lancement
-
-Guide pas-à-pas pour qu'un développeur puisse lancer votre projet.
-
-```bash
-# Cloner le dépôt
-git clone [https://github.com/votre-user/votre-projet.git](https://github.com/votre-user/votre-projet.git)
-
-# Installer les dépendances
-npm install / pip install -r requirements.txt
-
-# Lancer l'application
-npm start / python main.py
-```
 
 ---
 
