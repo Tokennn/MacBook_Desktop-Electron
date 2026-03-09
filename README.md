@@ -121,9 +121,9 @@ LICENSE               (Licence du projet)
 
 ### 3. Répartition Code IA vs Code Humain
 
-- **Boilerplate / Config :** 80% IA.
-- **Logique Métier (Algorithme) :** 100% Humain.
-- **Interface (UI) :** 50% IA / 50% Humain.
+- **Boilerplate / Config :** 30% IA / 70% Humain.
+- **Logique Métier (Algorithme) :** 80% IA.
+- **Interface (UI) :** 30% IA / 70% Humain.
 
 ---
 
