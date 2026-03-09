@@ -409,6 +409,15 @@
   pointer-events: none;
 }
 
+.desktop-selection-rect {
+  position: absolute;
+  z-index: 13;
+  border: 1px solid rgba(135, 193, 255, 0.72);
+  background: rgba(93, 166, 255, 0.2);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(181, 221, 255, 0.32);
+}
+
 .desktop-icon {
   position: absolute;
   width: 86px;
@@ -428,7 +437,8 @@
 }
 
 .desktop-icon:hover,
-.desktop-icon.is-active {
+.desktop-icon.is-active,
+.desktop-icon.is-selected {
   background: rgba(116, 153, 194, 0.24);
 }
 

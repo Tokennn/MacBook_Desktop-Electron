@@ -98,6 +98,15 @@ type DesktopDragState = {
   offsetY: number
 }
 
+type DesktopSelectionState = {
+  pointerId: number
+  startX: number
+  startY: number
+  currentX: number
+  currentY: number
+  isDragging: boolean
+}
+
 const MENU_ITEMS = ['Finder', 'File', 'Edit', 'View', 'Go', 'Window', 'Help'] as const
 
 const SIDEBAR_GROUPS: SidebarGroup[] = [
@@ -264,6 +273,29 @@ function clampDesktopPosition(x: number, y: number, sceneWidth: number, sceneHei
     x: clamp(x, DESKTOP_ICON_SAFE_GAP, maxX),
     y: clamp(y, DESKTOP_ICON_SAFE_GAP, maxY),
   }
+}
+
+function createSelectionRect(startX: number, startY: number, currentX: number, currentY: number) {
+  const left = Math.min(startX, currentX)
+  const top = Math.min(startY, currentY)
+  const right = Math.max(startX, currentX)
+  const bottom = Math.max(startY, currentY)
+
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+    right,
+    bottom,
+  }
+}
+
+function rectsIntersect(
+  a: { left: number; top: number; right: number; bottom: number },
+  b: { left: number; top: number; right: number; bottom: number },
+) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 }
 
 function normalizeWebsite(value: string) {
@@ -531,6 +563,9 @@ function App() {
   const [loginPosition, setLoginPosition] = useState<FinderPosition>({ x: 0, y: 0 })
   const [loginDragState, setLoginDragState] = useState<LoginDragState | null>(null)
   const [desktopDragState, setDesktopDragState] = useState<DesktopDragState | null>(null)
+  const [desktopSelectionState, setDesktopSelectionState] = useState<DesktopSelectionState | null>(
+    null,
+  )
   const [desktopIcons, setDesktopIcons] = useState<DesktopIcon[]>(() => {
     const sceneWidth = typeof window === 'undefined' ? 1280 : window.innerWidth
     const x = Math.max(DESKTOP_ICON_SAFE_GAP, sceneWidth - DESKTOP_ICON_WIDTH - 24)
@@ -546,6 +581,7 @@ function App() {
   const [activeFinderAppId, setActiveFinderAppId] = useState<string | null>(null)
   const [activeDockAppId, setActiveDockAppId] = useState<string | null>(null)
   const [activeDesktopIconId, setActiveDesktopIconId] = useState<string | null>(null)
+  const [selectedDesktopIconIds, setSelectedDesktopIconIds] = useState<string[]>([])
   const [loginWindowOpen, setLoginWindowOpen] = useState(false)
   const [loginForm, setLoginForm] = useState<LoginFormState>(EMPTY_LOGIN_FORM)
   const [loginFieldErrors, setLoginFieldErrors] = useState<LoginFieldErrors>({})
@@ -816,6 +852,67 @@ function App() {
       window.removeEventListener('pointercancel', handlePointerUp)
     }
   }, [desktopDragState])
+
+  useEffect(() => {
+    if (!desktopSelectionState) {
+      return
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerId !== desktopSelectionState.pointerId) {
+        return
+      }
+
+      const scene = desktopSceneRef.current
+
+      if (!scene) {
+        return
+      }
+
+      const sceneRect = scene.getBoundingClientRect()
+      const currentX = clamp(event.clientX - sceneRect.left, 0, sceneRect.width)
+      const currentY = clamp(event.clientY - sceneRect.top, 0, sceneRect.height)
+
+      setDesktopSelectionState((currentState) => {
+        if (!currentState || currentState.pointerId !== event.pointerId) {
+          return currentState
+        }
+
+        const movedX = Math.abs(currentX - currentState.startX)
+        const movedY = Math.abs(currentY - currentState.startY)
+        const isDragging = currentState.isDragging || movedX > 2 || movedY > 2
+
+        return {
+          ...currentState,
+          currentX,
+          currentY,
+          isDragging,
+        }
+      })
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (event.pointerId !== desktopSelectionState.pointerId) {
+        return
+      }
+
+      if (!desktopSelectionState.isDragging) {
+        setSelectedDesktopIconIds([])
+      }
+
+      setDesktopSelectionState(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+    }
+  }, [desktopSelectionState])
 
   useEffect(() => {
     if (!loginDragState) {
@@ -1166,6 +1263,7 @@ function App() {
       },
     ])
     setActiveDesktopIconId(iconId)
+    setSelectedDesktopIconIds([iconId])
   }
 
   const handleDesktopIconPointerDown = (
@@ -1179,11 +1277,43 @@ function App() {
     const iconRect = event.currentTarget.getBoundingClientRect()
 
     setActiveDesktopIconId(iconId)
+    setSelectedDesktopIconIds([iconId])
     setDesktopDragState({
       pointerId: event.pointerId,
       iconId,
       offsetX: event.clientX - iconRect.left,
       offsetY: event.clientY - iconRect.top,
+    })
+    event.preventDefault()
+  }
+
+  const handleDesktopScenePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return
+    }
+
+    if (event.target !== event.currentTarget) {
+      return
+    }
+
+    const scene = desktopSceneRef.current
+
+    if (!scene) {
+      return
+    }
+
+    const sceneRect = scene.getBoundingClientRect()
+    const startX = clamp(event.clientX - sceneRect.left, 0, sceneRect.width)
+    const startY = clamp(event.clientY - sceneRect.top, 0, sceneRect.height)
+
+    setActiveDesktopIconId(null)
+    setDesktopSelectionState({
+      pointerId: event.pointerId,
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+      isDragging: false,
     })
     event.preventDefault()
   }
@@ -1279,6 +1409,38 @@ function App() {
     }))
   }, [filteredPasswordEntries])
 
+  const desktopSelectionRect = useMemo(() => {
+    if (!desktopSelectionState || !desktopSelectionState.isDragging) {
+      return null
+    }
+
+    return createSelectionRect(
+      desktopSelectionState.startX,
+      desktopSelectionState.startY,
+      desktopSelectionState.currentX,
+      desktopSelectionState.currentY,
+    )
+  }, [desktopSelectionState])
+
+  useEffect(() => {
+    if (!desktopSelectionRect) {
+      return
+    }
+
+    const nextSelectedIds = desktopIcons
+      .filter((icon) =>
+        rectsIntersect(desktopSelectionRect, {
+          left: icon.x,
+          top: icon.y,
+          right: icon.x + DESKTOP_ICON_WIDTH,
+          bottom: icon.y + DESKTOP_ICON_HEIGHT,
+        }),
+      )
+      .map((icon) => icon.id)
+
+    setSelectedDesktopIconIds(nextSelectedIds)
+  }, [desktopIcons, desktopSelectionRect])
+
   return (
     <div className='mac-desktop'>
       <div className='wallpaper'>
@@ -1331,6 +1493,7 @@ function App() {
       <main
         className='desktop-scene'
         ref={desktopSceneRef}
+        onPointerDown={handleDesktopScenePointerDown}
         onDragOver={handleDesktopSceneDragOver}
         onDrop={handleDesktopSceneDrop}
       >
@@ -1419,6 +1582,18 @@ function App() {
         )}
 
         <div className='desktop-icons-layer'>
+          {desktopSelectionRect && (
+            <div
+              className='desktop-selection-rect'
+              style={{
+                left: desktopSelectionRect.left,
+                top: desktopSelectionRect.top,
+                width: desktopSelectionRect.width,
+                height: desktopSelectionRect.height,
+              }}
+              aria-hidden='true'
+            />
+          )}
           {desktopIcons.map((desktopIcon) => {
             const app = APP_MAP.get(desktopIcon.appId)
 
@@ -1428,11 +1603,12 @@ function App() {
 
             const isActive = activeDesktopIconId === desktopIcon.id
             const isDragging = desktopDragState?.iconId === desktopIcon.id
+            const isSelected = selectedDesktopIconIds.includes(desktopIcon.id)
 
             return (
               <button
                 key={desktopIcon.id}
-                className={`desktop-icon ${isActive ? 'is-active' : ''} ${isDragging ? 'is-dragging' : ''}`}
+                className={`desktop-icon ${isActive ? 'is-active' : ''} ${isDragging ? 'is-dragging' : ''} ${isSelected ? 'is-selected' : ''}`}
                 style={{
                   left: desktopIcon.x,
                   top: desktopIcon.y,
@@ -1440,6 +1616,7 @@ function App() {
                 onPointerDown={(event) => handleDesktopIconPointerDown(event, desktopIcon.id)}
                 onClick={() => {
                   setActiveDesktopIconId(desktopIcon.id)
+                  setSelectedDesktopIconIds([desktopIcon.id])
                   openApp(desktopIcon.appId, 'desktop')
                 }}
                 aria-label={app.name}
